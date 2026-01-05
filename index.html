@@ -1,0 +1,131 @@
+<!doctype html> 
+<html lang="el"> 
+  <head> 
+    <meta charset="utf-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <title>Tag-It-AR Demo: &lt;i&gt;</title> 
+ 
+
+    <!-- A-Frame + MindAR (A-Frame integration) --> 
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script> 
+ 
+
+    <style> 
+      body { margin: 0; overflow: hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; } 
+      /* Απλό overlay UI πάνω από την κάμερα */ 
+      #ui { 
+        position: fixed; inset: 0; 
+        pointer-events: none; 
+        display: grid; 
+        grid-template-rows: auto 1fr auto; 
+        padding: 14px; 
+        color: #fff; 
+        text-shadow: 0 2px 8px rgba(0,0,0,.65); 
+        z-index: 10; 
+      } 
+      #topbar { 
+        display: flex; justify-content: space-between; align-items: center; 
+        pointer-events: none; 
+      } 
+      .badge { 
+        background: rgba(0,0,0,.45); 
+        border: 1px solid rgba(255,255,255,.18); 
+        border-radius: 12px; 
+        padding: 6px 10px; 
+        font-size: 13px; 
+      } 
+      #helloWrap { 
+        display: grid; 
+        place-items: center; 
+      } 
+      #hello { 
+        font-size: 42px; 
+        font-weight: 700; 
+        background: rgba(0,0,0,.35); 
+        border: 1px solid rgba(255,255,255,.16); 
+        padding: 14px 18px; 
+        border-radius: 16px; 
+      } 
+      /* Το "εφέ" του <i> */ 
+      #hello.italic { font-style: italic; } 
+ 
+
+      #hint { 
+        pointer-events: none; 
+        font-size: 14px; 
+        line-height: 1.35; 
+        background: rgba(0,0,0,.45); 
+        border: 1px solid rgba(255,255,255,.18); 
+        border-radius: 14px; 
+        padding: 10px 12px; 
+        max-width: 520px; 
+      } 
+    </style> 
+ 
+
+    <script> 
+      // Component που κάνει toggle italic όταν βρεθεί/χαθεί ο στόχος 
+      AFRAME.registerComponent("tag-i-toggle", { 
+        init: function () { 
+          const helloEl = document.getElementById("hello"); 
+ 
+
+          // Τα events targetFound/targetLost είναι διαθέσιμα στο mindar-image-target entity 
+          // (βλέπε MindAR events-handling example). 
+          this.el.addEventListener("targetFound", () => { 
+            helloEl.classList.add("italic"); 
+            document.getElementById("status").textContent = "Εντοπίστηκε κάρτα: <i>"; 
+          }); 
+ 
+
+          this.el.addEventListener("targetLost", () => { 
+            helloEl.classList.remove("italic"); 
+            document.getElementById("status").textContent = "Δεν εντοπίζεται κάρτα"; 
+          }); 
+        } 
+      }); 
+    </script> 
+  </head> 
+ 
+
+  <body> 
+    <!-- Overlay UI --> 
+    <div id="ui"> 
+      <div id="topbar"> 
+        <div class="badge"><strong>Tag‑It‑AR</strong> • Demo 1 κάρτας</div> 
+        <div class="badge" id="status">Δεν εντοπίζεται κάρτα</div> 
+      </div> 
+ 
+
+      <div id="helloWrap"> 
+        <div id="hello">Hello World!</div> 
+      </div> 
+ 
+
+      <div id="hint"> 
+        Τοποθέτησε την κάρτα <strong>&lt;i&gt;</strong> μπροστά στην κάμερα. Όταν αναγνωριστεί, το κείμενο θα γίνει πλάγιο. 
+      </div> 
+    </div> 
+ 
+
+    <!-- AR Scene --> 
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind;" 
+      embedded 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+    > 
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera> 
+ 
+
+      <!-- Αυτό είναι το entity-στόχος (1 εικόνα => targetIndex: 0) --> 
+      <a-entity mindar-image-target="targetIndex: 0" tag-i-toggle> 
+        <!-- Προαιρετικά: ένα ημιδιάφανο plane για να βλέπεις ότι "κλειδώνει" πάνω στην κάρτα --> 
+        <a-plane color="#00bcd4" opacity="0.25" height="0.6" width="1.0" position="0 0 0"></a-plane> 
+      </a-entity> 
+    </a-scene> 
+  </body> 
+</html> 
+ 
