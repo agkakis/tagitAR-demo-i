@@ -1,0 +1,256 @@
+<!doctype html> 
+<html lang="el"> 
+<head> 
+  <meta charset="utf-8" /> 
+  <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+  <title>Tag‑It‑AR (Desktop) — ITALIC PAIR</title> 
+ 
+
+  <!-- A-Frame + MindAR (A-Frame integration) --> 
+  https://aframe.io/releases/1.5.0/aframe.min.js</script> 
+  https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js</script> 
+ 
+
+  <style> 
+    :root{ 
+      --bg:#0b0f14; 
+      --panel: rgba(0,0,0,.55); 
+      --border: rgba(255,255,255,.18); 
+      --accent: #2dd4bf; 
+      --helloBg:#ffd400; 
+      --helloFg:#111; 
+    } 
+    html, body { height:100%; margin:0; overflow:hidden; background: var(--bg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; } 
+ 
+
+    /* Κάνε το scene full-screen */ 
+    a-scene { position: fixed; inset: 0; } 
+ 
+
+    /* UI overlay */ 
+    #ui{ 
+      position: fixed; inset: 0; 
+      z-index: 10; 
+      pointer-events: none; 
+      display: grid; 
+      grid-template-rows: auto 1fr auto; 
+      gap: 12px; 
+      padding: 14px; 
+      color: #fff; 
+      text-shadow: 0 2px 10px rgba(0,0,0,.6); 
+    } 
+ 
+
+    #topbar{ 
+      display:flex; 
+      align-items:center; 
+      justify-content: space-between; 
+      gap: 10px; 
+      flex-wrap: wrap; 
+    } 
+    .pill{ 
+      background: var(--panel); 
+      border: 1px solid var(--border); 
+      border-radius: 999px; 
+      padding: 8px 12px; 
+      font-size: 14px; 
+      line-height: 1.2; 
+      backdrop-filter: blur(6px); 
+    } 
+    #startBtn{ 
+      pointer-events: auto; 
+      cursor: pointer; 
+      border: 0; 
+      border-radius: 999px; 
+      padding: 10px 14px; 
+      background: var(--accent); 
+      color: #06201b; 
+      font-weight: 900; 
+      box-shadow: 0 14px 34px rgba(45,212,191,.25); 
+    } 
+    #startBtn:disabled{ opacity:.65; cursor:not-allowed; } 
+ 
+
+    /* Κεντρική ζώνη σάρωσης (για να μη σε εμποδίζει το UI) */ 
+    #scanZone{ 
+      display:grid; 
+      place-items:center; 
+    } 
+    #reticle{ 
+      width: min(54vw, 560px); 
+      height: min(44vh, 360px); 
+      border: 3px dashed rgba(255,255,255,.55); 
+      border-radius: 18px; 
+      background: rgba(0,0,0,.15); 
+      display: grid; 
+      place-items: center; 
+      text-align: center; 
+      padding: 18px; 
+    } 
+    #reticle .title{ font-size: 18px; font-weight: 950; letter-spacing: .6px; } 
+    #reticle .subtitle{ font-size: 14px; opacity: .92; margin-top: 6px; max-width: 520px; } 
+ 
+
+    /* Hello box κάτω (δεν καλύπτει το κέντρο) */ 
+    #bottom{ 
+      display:flex; 
+      justify-content:center; 
+    } 
+    #helloBox{ 
+      width: min(980px, 98vw); 
+      background: var(--helloBg); 
+      color: var(--helloFg); 
+      border: 4px solid #111; 
+      border-radius: 20px; 
+      padding: 16px 18px; 
+      box-shadow: 0 20px 55px rgba(0,0,0,.45); 
+    } 
+    #hello{ 
+      margin: 0; 
+      font-size: 44px; 
+      font-weight: 950; 
+      line-height: 1.05; 
+      text-align:center; 
+    } 
+    #hello.italic{ font-style: italic; } 
+ 
+
+    #codeTitle{ 
+      margin-top: 10px; 
+      font-size: 12px; 
+      font-weight: 900; 
+      text-transform: uppercase; 
+      letter-spacing: .4px; 
+    } 
+    #codePreview{ 
+      margin-top: 6px; 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; 
+      font-size: 14px; 
+      background: rgba(17,17,17,.92); 
+      color: #eaeaea; 
+      padding: 10px 12px; 
+      border-radius: 12px; 
+      border: 1px solid rgba(255,255,255,.14); 
+      white-space: pre; 
+      overflow:auto; 
+    } 
+  </style> 
+ 
+
+  <script> 
+    /** 
+     * One card = one pair: ITALIC PAIR means <i> ... </i> 
+     * We start AR with a user click using arSystem.start() and autoStart:false, 
+     * following MindAR Events Handling pattern. [2](https://stackoverflow.com/questions/77768409/mindar-image-tracking-no-video-is-played-or-starts-on-its-own) 
+     */ 
+    AFRAME.registerComponent("italic-pair-controller", { 
+      init: function () { 
+        this.statusEl = document.getElementById("statusPill"); 
+        this.helloEl = document.getElementById("hello"); 
+        this.codeEl = document.getElementById("codePreview"); 
+        this.startBtn = document.getElementById("startBtn"); 
+ 
+
+        const sceneEl = document.querySelector("a-scene"); 
+        this.arSystem = null; 
+ 
+
+        // Debug events: arReady / arError help diagnose camera start issues. [2](https://stackoverflow.com/questions/77768409/mindar-image-tracking-no-video-is-played-or-starts-on-its-own) 
+        sceneEl.addEventListener("arReady", () => console.log("✅ arReady")); 
+        sceneEl.addEventListener("arError", (e) => console.error("❌ arError", e)); 
+ 
+
+        sceneEl.addEventListener("loaded", () => { 
+          this.arSystem = sceneEl.systems["mindar-image-system"]; 
+          this.startBtn.disabled = false; 
+        }); 
+ 
+
+        // Target events: targetFound/targetLost. [2](https://stackoverflow.com/questions/77768409/mindar-image-tracking-no-video-is-played-or-starts-on-its-own) 
+        this.targetEl = document.getElementById("italicTarget"); 
+        this.targetEl.addEventListener("targetFound", () => { 
+          this.helloEl.classList.add("italic"); 
+          this.codeEl.textContent = "<i>Hello World!</i>"; 
+          this.statusEl.textContent = "✅ Αναγνωρίστηκε ITALIC PAIR → εφαρμόστηκε <i>…</i>"; 
+        }); 
+ 
+
+        this.targetEl.addEventListener("targetLost", () => { 
+          this.helloEl.classList.remove("italic"); 
+          this.codeEl.textContent = "Hello World!"; 
+          this.statusEl.textContent = "Σάρωση… δείξε την κάρτα ITALIC PAIR μέσα στο πλαίσιο"; 
+        }); 
+ 
+
+        // Start AR on click 
+        this.startBtn.addEventListener("click", async () => { 
+          if (!this.arSystem) return; 
+          try { 
+            this.startBtn.disabled = true; 
+            this.statusEl.textContent = "Εκκίνηση κάμερας… δώσε άδεια (Allow)"; 
+            await this.arSystem.start(); 
+            this.statusEl.textContent = "Σάρωση… δείξε την κάρτα ITALIC PAIR μέσα στο πλαίσιο"; 
+          } catch (e) { 
+            console.error(e); 
+            this.statusEl.textContent = "❌ Σφάλμα κάμερας/AR — έλεγξε permissions ή ότι είσαι σε localhost."; 
+            this.startBtn.disabled = false; 
+          } 
+        }); 
+ 
+
+        // initial 
+        this.codeEl.textContent = "Hello World!"; 
+      } 
+    }); 
+  </script> 
+</head> 
+ 
+
+<body> 
+  <div id="ui"> 
+    <div id="topbar"> 
+      <div class="pill"><strong>Tag‑It‑AR</strong> • Desktop Demo (1 κάρτα = 1 ζευγάρι)</div> 
+      <div class="pill" id="statusPill">Πάτα “Start Camera” για να ξεκινήσεις</div> 
+      <button id="startBtn" disabled>Start Camera</button> 
+    </div> 
+ 
+
+    <div id="scanZone"> 
+      <div id="reticle"> 
+        <div class="title">SCAN ZONE</div> 
+        <div class="subtitle"> 
+          Τοποθέτησε την κάρτα <strong>ITALIC PAIR</strong> μέσα στο πλαίσιο. 
+          Όταν αναγνωριστεί, το “Hello World!” θα γίνει πλάγιο. 
+        </div> 
+      </div> 
+    </div> 
+ 
+
+    <div id="bottom"> 
+      <div id="helloBox"> 
+        <p id="hello">Hello World!</p> 
+        <div id="codeTitle">HTML Preview</div> 
+        <div id="codePreview">Hello World!</div> 
+      </div> 
+    </div> 
+  </div> 
+ 
+
+  <!-- MindAR Scene --> 
+  <a-scene 
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" 
+    embedded 
+    vr-mode-ui="enabled: false" 
+    device-orientation-permission-ui="enabled: false" 
+    renderer="colorManagement: true, physicallyCorrectLights" 
+    italic-pair-controller 
+  > 
+    <a-camera position="0 0 0" look-controls="enabled:false"></a-camera> 
+ 
+
+    <!-- One target only: targetIndex 0 --> 
+    <a-entity id="italicTarget" mindar-image-target="targetIndex: 0"></a-entity> 
+  </a-scene> 
+</body> 
+</html> 
+ 
