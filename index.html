@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tag-It-AR | MindAR demo (i)</title>
+
+    <!-- A-Frame + MindAR -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      }
+
+      /* HUD */
+      #hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 14px;
+        background: rgba(0, 0, 0, 0.55);
+        color: white;
+        z-index: 10;
+      }
+
+      #previewWrap {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        z-index: 10;
+      }
+
+      #preview {
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      .muted {
+        opacity: 0.85;
+        font-size: 14px;
+        margin-top: 6px;
+      }
+
+      code {
+        background: rgba(0, 0, 0, 0.06);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+
+      /*
+        IMPORTANT:
+        Δεν καθρεφτίζουμε το HUD/preview.
+        Θα εφαρμόσουμε "un-mirror" ΜΟΝΟ στο AR canvas και στο video element μέσω JS.
+      */
+    </style>
+  </head>
+
+  <body>
+    <!-- HUD -->
+    <div id="hud">
+      <div>
+        <strong>Tag-It-AR demo:</strong> Δείξε την κάρτα <code>&lt;i&gt;</code>
+        στην κάμερα.
+      </div>
+      <div class="muted" id="status">Κατάσταση: αναμονή…</div>
+    </div>
+
+    <!-- Preview -->
+    <div id="previewWrap">
+      <div id="preview">Hello World!</div>
+      <div class="muted" id="codeView">HTML: Hello World!</div>
+    </div>
+
+    <!-- AR Scene -->
+    <a-scene
+      mindar-image="imageTargetSrc: targets.mind;"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+    >
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <!-- Target: κάρτα <i> (targetIndex 0) -->
+      <a-entity id="i-target" mindar-image-target="targetIndex: 0">
+        <a-plane
+          color="white"
+          opacity="0.7"
+          position="0 0 0"
+          height="0.35"
+          width="0.8"
+        ></a-plane>
+        <a-text
+          value="<i>"
+          color="black"
+          align="center"
+          position="0 0 0.01"
+          width="2"
+        ></a-text>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const previewEl = document.getElementById("preview");
+      const codeViewEl = document.getElementById("codeView");
+
+      const targetEl = document.getElementById("i-target");
+      const sceneEl = document.querySelector("a-scene");
+
+      /* MindAR lifecycle (events) */
+      sceneEl.addEventListener("arReady", () => {
+        statusEl.textContent =
+          "Κατάσταση: η κάμερα είναι έτοιμη. Σάρωσε την κάρτα…";
+      });
+
+      sceneEl.addEventListener("arError", () => {
+        statusEl.textContent =
+          "Σφάλμα: πρόβλημα με την κάμερα ή το AR. Έλεγξε permissions.";
+      });
+
+      /* Target events */
+      targetEl.addEventListener("targetFound", () => {
+        statusEl.textContent =
+          "Κατάσταση: βρέθηκε η κάρτα. Εφαρμόζεται <i>…</i>";
+        previewEl.style.fontStyle = "italic";
+        codeViewEl.textContent = "HTML: <i>Hello World!</i>";
+      });
+
+      targetEl.addEventListener("targetLost", () => {
+        statusEl.textContent =
+          "Κατάσταση: χάθηκε η κάρτα. Αφαιρείται το </i>";
+        previewEl.style.fontStyle = "normal";
+        codeViewEl.textContent = "HTML: Hello World!";
+      });
+
+      /*
+        Desktop ONLY: "un-mirror" το AR viewport (video + canvas).
+        - Δεν αγγίζουμε HUD/preview => τα κείμενα μένουν σωστά.
+        - Γυρίζουμε το video + το canvas μαζί => overlay μένει ευθυγραμμισμένο.
+      */
+      const isDesktop = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      function applyDesktopUnmirror() {
+        if (!isDesktop) return;
+
+        // A-Frame canvas (συνήθως έχει class "a-canvas")
+        const canvasEl = document.querySelector("canvas.a-canvas") || sceneEl.canvas;
+
+        // MindAR video element (συνήθως υπάρχει ένα <video> για την κάμερα)
+        // Αν έχεις και άλλα videos στο μέλλον, τότε θα το κάνουμε πιο συγκεκριμένο.
+        const videoEl = document.querySelector("video");
+
+        // Εφαρμόζουμε το ίδιο transform και στα δύο
+        const transformValue = "scaleX(-1)";
+        const originValue = "center center";
+
+        if (canvasEl) {
+          canvasEl.style.transform = transformValue;
+          canvasEl.style.transformOrigin = originValue;
+        }
+
+        if (videoEl) {
+          videoEl.style.transform = transformValue;
+          videoEl.style.transformOrigin = originValue;
+        }
+
+        // Μικρό μήνυμα για debugging (προαιρετικό)
+        // statusEl.textContent = "Desktop: un-mirror ενεργό (κάμερα/overlay).";
+      }
+
+      // Περιμένουμε να φορτώσει η σκηνή (ώστε να υπάρχει canvas)
+      sceneEl.addEventListener("loaded", () => {
+        // Μερικές φορές το video δημιουργείται λίγο αργότερα, γι’ αυτό κάνουμε
+        // 2-3 προσπάθειες σε μικρό διάστημα.
+        applyDesktopUnmirror();
+        setTimeout(applyDesktopUnmirror, 250);
+        setTimeout(applyDesktopUnmirror, 750);
+      });
+    </script>
+  </body>
+</html>
