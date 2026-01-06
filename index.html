@@ -1,0 +1,217 @@
+<!doctype html> 
+<html lang="el"> 
+  <head> 
+    <meta charset="utf-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <title>Tag-It-AR Demo: &lt;i&gt;</title> 
+ 
+
+    <!-- A-Frame + MindAR (A-Frame integration) --> 
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script> 
+ 
+
+    <style> 
+      html, body { 
+        height: 100%; 
+      } 
+      body { 
+        margin: 0; 
+        overflow: hidden; 
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; 
+        background: #000; /* αποφεύγει “λευκό” flash */ 
+      } 
+ 
+
+      /* ========================= 
+         UI Overlay (Mobile default) 
+         ========================= */ 
+      #ui { 
+        position: fixed; 
+        inset: 0; 
+        pointer-events: none; 
+        display: grid; 
+        grid-template-rows: auto 1fr auto; 
+        padding: 14px; 
+        color: #fff; 
+        text-shadow: 0 2px 8px rgba(0,0,0,.65); 
+        z-index: 10; 
+      } 
+ 
+
+      #topbar { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+      } 
+ 
+
+      .badge { 
+        background: rgba(0,0,0,.45); 
+        border: 1px solid rgba(255,255,255,.18); 
+        border-radius: 12px; 
+        padding: 6px 10px; 
+        font-size: 13px; 
+      } 
+ 
+
+      #helloWrap { 
+        display: grid; 
+        place-items: center; 
+      } 
+ 
+
+      #hello { 
+        font-size: clamp(28px, 4.5vw, 44px); 
+        font-weight: 700; 
+        background: rgba(0,0,0,.35); 
+        border: 1px solid rgba(255,255,255,.16); 
+        padding: 14px 18px; 
+        border-radius: 16px; 
+      } 
+ 
+
+      /* Το “εφέ” του <i> */ 
+      #hello.italic { 
+        font-style: italic; 
+      } 
+ 
+
+      #hint { 
+        font-size: 14px; 
+        line-height: 1.35; 
+        background: rgba(0,0,0,.45); 
+        border: 1px solid rgba(255,255,255,.18); 
+        border-radius: 14px; 
+        padding: 10px 12px; 
+        max-width: 520px; 
+      } 
+ 
+
+      /* ========================= 
+         Desktop Split View 
+         ========================= */ 
+      @media (min-width: 900px) { 
+ 
+
+        /* Αριστερά: κάμερα/AR */ 
+        a-scene { 
+          position: fixed !important; 
+          inset: 0 auto 0 0;   /* top right bottom left */ 
+          width: 58vw; 
+          height: 100vh; 
+          z-index: 1; 
+        } 
+ 
+
+        /* Δεξιά: UI panel */ 
+        #ui { 
+          position: fixed; 
+          inset: 0 0 0 auto; 
+          width: 42vw; 
+          height: 100vh; 
+ 
+
+          /* Panel look */ 
+          padding: 18px; 
+          background: linear-gradient(180deg, rgba(10,10,10,.78), rgba(10,10,10,.58)); 
+          border-left: 1px solid rgba(255,255,255,.12); 
+ 
+
+          /* Layout: topbar, content, hint */ 
+          grid-template-rows: auto 1fr auto; 
+          gap: 14px; 
+ 
+
+          z-index: 10; 
+        } 
+ 
+
+        /* Στο panel θέλουμε το περιεχόμενο πιο “στατικό/καθαρό” */ 
+        #helloWrap { 
+          place-items: start; 
+          align-content: start; 
+          gap: 12px; 
+        } 
+ 
+
+        /* Κάνε το Hello World πιο “panel-like” */ 
+        #hello { 
+          font-size: clamp(30px, 2.4vw, 46px); 
+          width: fit-content; 
+        } 
+ 
+
+        /* Hint στο κάτω μέρος του panel */ 
+        #hint { 
+          max-width: none; 
+        } 
+      } 
+    </style> 
+ 
+
+    <script> 
+      // Component: toggle italic when target appears/disappears 
+      AFRAME.registerComponent("tag-i-toggle", { 
+        init: function () { 
+          const helloEl = document.getElementById("hello"); 
+          const statusEl = document.getElementById("status"); 
+ 
+
+          this.el.addEventListener("targetFound", () => { 
+            helloEl.classList.add("italic"); 
+            statusEl.textContent = "Εντοπίστηκε κάρτα: <i>"; 
+          }); 
+ 
+
+          this.el.addEventListener("targetLost", () => { 
+            helloEl.classList.remove("italic"); 
+            statusEl.textContent = "Δεν εντοπίζεται κάρτα"; 
+          }); 
+        } 
+      }); 
+    </script> 
+  </head> 
+ 
+
+  <body> 
+    <!-- UI Panel / Overlay --> 
+    <div id="ui"> 
+      <div id="topbar"> 
+        <div class="badge"><strong>Tag‑It‑AR</strong> • Demo 1 κάρτας</div> 
+        <div class="badge" id="status">Δεν εντοπίζεται κάρτα</div> 
+      </div> 
+ 
+
+      <div id="helloWrap"> 
+        <div id="hello">Hello World!</div> 
+      </div> 
+ 
+
+      <div id="hint"> 
+        Τοποθέτησε την κάρτα <strong>&lt;i&gt;</strong> μπροστά στην κάμερα. Όταν αναγνωριστεί, το κείμενο θα γίνει πλάγιο. 
+        <br /><br /> 
+        <strong>Tip:</strong> Σε desktop βάλε την κάρτα μέσα στο αριστερό τμήμα (κάμερα) και κοίτα το αποτέλεσμα στο δεξί panel. 
+      </div> 
+    </div> 
+ 
+
+    <!-- AR Scene --> 
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind;" 
+      embedded 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+    > 
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera> 
+ 
+
+      <!-- 1 εικόνα => targetIndex: 0 --> 
+      <a-entity mindar-image-target="targetIndex: 0" tag-i-toggle> 
+        <!-- Debug plane για να βλέπεις ότι “κλειδώνει” πάνω στην κάρτα --> 
+        <a-plane color="#00bcd4" opacity="0.25" height="0.6" width="1.0" position="0 0 0"></a-plane> 
+      </a-entity> 
+    </a-scene> 
+  </body> 
+</html> 
