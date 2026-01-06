@@ -1,0 +1,175 @@
+<!doctype html> 
+<html lang="el"> 
+  <head> 
+    <meta charset="utf-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <title>Tag-It-AR Demo: &lt;i&gt;</title> 
+ 
+
+    <!-- A-Frame + MindAR --> 
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script> 
+ 
+
+    <style> 
+      :root{ 
+        --safe-top: env(safe-area-inset-top, 0px); 
+        --safe-right: env(safe-area-inset-right, 0px); 
+        --safe-bottom: env(safe-area-inset-bottom, 0px); 
+        --safe-left: env(safe-area-inset-left, 0px); 
+      } 
+      html, body { height: 100%; } 
+      body { 
+        margin: 0; 
+        overflow: hidden; 
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; 
+        background: #000; /* ώστε να μην «φωτίζει» λευκό πριν ανοίξει η κάμερα */ 
+      } 
+      /* Overlay UI */ 
+      #ui { 
+        position: fixed; inset: 0; 
+        pointer-events: none; 
+        display: grid; 
+        grid-template-rows: auto 1fr auto; 
+        padding: calc(14px + var(--safe-top)) calc(14px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(14px + var(--safe-left)); 
+        color: #fff; 
+        text-shadow: 0 2px 8px rgba(0,0,0,.65); 
+        z-index: 10; 
+      } 
+      #topbar { 
+        display: flex; justify-content: space-between; align-items: center; 
+      } 
+      .badge { 
+        background: rgba(0,0,0,.45); 
+        border: 1px solid rgba(255,255,255,.18); 
+        border-radius: 12px; 
+        padding: 6px 10px; 
+        font-size: 13px; 
+      } 
+      #helloWrap { display: grid; place-items: center; } 
+      #hello { 
+        font-size: clamp(28px, 4.5vw, 44px); 
+        font-weight: 700; 
+        background: rgba(0,0,0,.35); 
+        border: 1px solid rgba(255,255,255,.16); 
+        padding: 14px 18px; 
+        border-radius: 16px; 
+        transition: font-style .2s ease; 
+      } 
+      #hello.italic { font-style: italic; } 
+ 
+
+      #hint { 
+        font-size: 14px; 
+        line-height: 1.35; 
+        background: rgba(0,0,0,.45); 
+        border: 1px solid rgba(255,255,255,.18); 
+        border-radius: 14px; 
+        padding: 10px 12px; 
+        max-width: 520px; 
+        justify-self: center; 
+        text-align: center; 
+      } 
+      #error { 
+        display: none; 
+        font-size: 13px; 
+        line-height: 1.4; 
+        color: #ffdada; 
+        background: rgba(120,0,0,.55); 
+        border: 1px solid rgba(255,255,255,.18); 
+        border-radius: 12px; 
+        padding: 8px 10px; 
+        max-width: 640px; 
+        justify-self: center; 
+        text-align: center; 
+      } 
+      #error.show { display: block; } 
+    </style> 
+ 
+
+    <script> 
+      // Component: toggle italic when target appears/disappears 
+      AFRAME.registerComponent("tag-i-toggle", { 
+        init: function () { 
+          const helloEl = document.getElementById("hello"); 
+          const statusEl = document.getElementById("status"); 
+ 
+
+          this.el.addEventListener("targetFound", () => { 
+            helloEl.classList.add("italic"); 
+            statusEl.textContent = "Εντοπίστηκε κάρτα: <i>"; 
+          }); 
+ 
+
+          this.el.addEventListener("targetLost", () => { 
+            helloEl.classList.remove("italic"); 
+            statusEl.textContent = "Δεν εντοπίζεται κάρτα"; 
+          }); 
+        } 
+      }); 
+ 
+
+      // Βοηθητικό: εμφάνιση σφαλμάτων AR/Camera 
+      document.addEventListener("DOMContentLoaded", () => { 
+        const sceneEl = document.querySelector("a-scene"); 
+        const errorEl = document.getElementById("error"); 
+        const statusEl = document.getElementById("status"); 
+ 
+
+        if (sceneEl) { 
+          sceneEl.addEventListener("arReady", () => { 
+            // Το AR είναι έτοιμο (κάμερα άνοιξε, pipeline φορτώθηκε) 
+            statusEl.textContent = "AR έτοιμο - περιμένω κάρτα"; 
+          }); 
+          sceneEl.addEventListener("arError", (e) => { 
+            errorEl.classList.add("show"); 
+            errorEl.textContent = "Σφάλμα AR/Κάμερας: " + 
+              (e?.detail?.message || "Ελέγξτε δικαιώματα κάμερας, HTTPS και το αρχείο targets.mind."); 
+            statusEl.textContent = "Σφάλμα AR"; 
+          }); 
+        } 
+      }); 
+    </script> 
+  </head> 
+ 
+
+  <body> 
+    <!-- Overlay UI --> 
+    <div id="ui"> 
+      <div id="topbar"> 
+        <div class="badge"><strong>Tag‑It‑AR</strong> • Demo 1 κάρτας</div> 
+        <div class="badge" id="status">Φόρτωση AR...</div> 
+      </div> 
+ 
+
+      <div id="helloWrap"> 
+        <div id="hello">Hello World!</div> 
+      </div> 
+ 
+
+      <div id="hint"> 
+        Τοποθέτησε την κάρτα <strong>&lt;i&gt;</strong> μπροστά στην κάμερα. Όταν αναγνωριστεί, το κείμενο θα γίνει πλάγιο. 
+      </div> 
+      <div id="error"></div> 
+    </div> 
+ 
+
+    <!-- AR Scene --> 
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind;" 
+      embedded 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+    > 
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera> 
+ 
+
+      <!-- Στόχος (targetIndex:0) --> 
+      <a-entity mindar-image-target="targetIndex: 0" tag-i-toggle> 
+        <!-- Debug plane: μπορείς να το αφαιρέσεις στην παραγωγή --> 
+        <a-plane color="#00bcd4" opacity="0.25" height="0.6" width="1.0" position="0 0 0"></a-plane> 
+      </a-entity> 
+    </a-scene> 
+  </body> 
+</html> 
