@@ -1,0 +1,217 @@
+<!doctype html> 
+<html lang="el"> 
+  <head> 
+    <meta charset="utf-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> 
+    <title>Tag-It-AR Demo: &lt;i&gt;</title> 
+ 
+
+    <!-- A-Frame + MindAR (A-Frame integration) --> 
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script> 
+ 
+
+    <style> 
+      body { 
+        margin: 0; 
+        overflow: hidden; 
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; 
+        background: #000; /* για να μην “ασπρίζει” πριν ανοίξει η κάμερα */ 
+      } 
+ 
+
+      /* Minimal overlay UI πάνω από την κάμερα */ 
+      #ui { 
+        position: fixed; 
+        inset: 0; 
+        pointer-events: none; /* δεν μπλοκάρει interaction της σκηνής */ 
+        display: grid; 
+ 
+
+        /* Focus Mode layout: 
+           1) topbar 
+           2) Hello World 
+           3) Scan Frame (κέντρο) 
+           4) hint 
+        */ 
+        grid-template-rows: auto auto 1fr auto; 
+        gap: 12px; 
+ 
+
+        padding: 14px; 
+        color: #fff; 
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65); 
+        z-index: 10; 
+      } 
+ 
+
+      #topbar { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        pointer-events: none; 
+      } 
+ 
+
+      .badge { 
+        background: rgba(0, 0, 0, 0.45); 
+        border: 1px solid rgba(255, 255, 255, 0.18); 
+        border-radius: 12px; 
+        padding: 6px 10px; 
+        font-size: 13px; 
+      } 
+ 
+
+      /* Τοποθέτηση “Hello World” πιο πάνω */ 
+      #helloWrap { 
+        display: grid; 
+        place-items: center; 
+        margin-top: 4px; 
+      } 
+ 
+
+      #hello { 
+        font-size: clamp(28px, 4vw, 44px); 
+        font-weight: 700; 
+        background: rgba(0, 0, 0, 0.35); 
+        border: 1px solid rgba(255, 255, 255, 0.16); 
+        padding: 14px 18px; 
+        border-radius: 16px; 
+      } 
+ 
+
+      /* Το "εφέ" του <i> */ 
+      #hello.italic { 
+        font-style: italic; 
+      } 
+ 
+
+      /* ===== Focus Mode: Scan Frame ===== */ 
+      #scanArea { 
+        display: grid; 
+        place-items: center; 
+        align-content: center; 
+        gap: 10px; 
+      } 
+ 
+
+      /* Το πλαίσιο σκαναρίσματος */ 
+      #scanFrame { 
+        width: min(520px, 80vw); 
+        height: min(320px, 45vh); 
+        border-radius: 18px; 
+        border: 2px solid rgba(255, 255, 255, 0.75); 
+ 
+
+        /* “Μάσκα” γύρω γύρω ώστε να μειώνεται ο οπτικός θόρυβος */ 
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.20); 
+ 
+
+        background: rgba(255, 255, 255, 0.03); 
+        backdrop-filter: blur(2px); 
+      } 
+ 
+
+      #scanLabel { 
+        font-size: 13px; 
+        opacity: 0.95; 
+        background: rgba(0, 0, 0, 0.45); 
+        border: 1px solid rgba(255, 255, 255, 0.18); 
+        padding: 6px 10px; 
+        border-radius: 999px; 
+      } 
+ 
+
+      /* Hint box */ 
+      #hint { 
+        pointer-events: none; 
+        font-size: 14px; 
+        line-height: 1.35; 
+        background: rgba(0, 0, 0, 0.45); 
+        border: 1px solid rgba(255, 255, 255, 0.18); 
+        border-radius: 14px; 
+        padding: 10px 12px; 
+        max-width: 520px; 
+        justify-self: center; 
+        text-align: center; 
+      } 
+    </style> 
+ 
+
+    <script> 
+      // Component που κάνει toggle italic όταν βρεθεί/χαθεί ο στόχος 
+      AFRAME.registerComponent("tag-i-toggle", { 
+        init: function () { 
+          const helloEl = document.getElementById("hello"); 
+          const statusEl = document.getElementById("status"); 
+ 
+
+          // Events targetFound/targetLost στο mindar-image-target entity 
+          this.el.addEventListener("targetFound", () => { 
+            helloEl.classList.add("italic"); 
+            statusEl.textContent = "Εντοπίστηκε κάρτα: <i>"; 
+          }); 
+ 
+
+          this.el.addEventListener("targetLost", () => { 
+            helloEl.classList.remove("italic"); 
+            statusEl.textContent = "Δεν εντοπίζεται κάρτα"; 
+          }); 
+        } 
+      }); 
+    </script> 
+  </head> 
+ 
+
+  <body> 
+    <!-- Overlay UI --> 
+    <div id="ui"> 
+      <div id="topbar"> 
+        <div class="badge"><strong>Tag‑It‑AR</strong> • Demo 1 κάρτας</div> 
+        <div class="badge" id="status">Δεν εντοπίζεται κάρτα</div> 
+      </div> 
+ 
+
+      <div id="helloWrap"> 
+        <div id="hello">Hello World!</div> 
+      </div> 
+ 
+
+      <!-- Focus Mode: περιοχή “πού κοιτάω” για σκανάρισμα --> 
+      <div id="scanArea"> 
+        <div id="scanFrame"></div> 
+        <div id="scanLabel">Σκάναρε εδώ την κάρτα</div> 
+      </div> 
+ 
+
+      <div id="hint"> 
+        Τοποθέτησε την κάρτα <strong>&lt;i&gt;</strong> μέσα στο πλαίσιο. Όταν αναγνωριστεί, το κείμενο θα γίνει πλάγιο. 
+      </div> 
+    </div> 
+ 
+
+    <!-- AR Scene --> 
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind;" 
+      embedded 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+    > 
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera> 
+ 
+
+      <!-- Αυτό είναι το entity-στόχος (1 εικόνα => targetIndex: 0) --> 
+      <a-entity mindar-image-target="targetIndex: 0" tag-i-toggle> 
+        <!-- Προαιρετικό: plane για debug ότι “κλειδώνει” πάνω στην κάρτα --> 
+        <a-plane 
+          color="#00bcd4" 
+          opacity="0.25" 
+          height="0.6" 
+          width="1.0" 
+          position="0 0 0" 
+        ></a-plane> 
+      </a-entity> 
+    </a-scene> 
+  </body> 
+</html> 
